@@ -16,6 +16,7 @@ type application struct { //thats a pattern called Dependency Injection
 func main() {
 	addr := flag.String("addr", ":4000", "Web address HTTP")
 	flag.Parse()
+
 	infolog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime) //creating log for info messages
 	errorlog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
@@ -24,18 +25,10 @@ func main() {
 		infolog:  infolog,
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", app.home)
-	mux.HandleFunc("/snippet", app.showSnippet)
-	mux.HandleFunc("/snippet/create", app.createSnippet)
-
-	fileServer := http.FileServer(http.Dir("./ui/static/"))         // accessing static files
-	mux.Handle("/static/", http.StripPrefix("/static", fileServer)) // removing "/static"
-
 	srv := &http.Server{ //initializing the server (the only change is redirecting errors to created errlog)
 		Addr:     *addr,
 		ErrorLog: errorlog,
-		Handler:  mux,
+		Handler:  app.routes(),
 	}
 
 	infolog.Printf("Запуск сервера на %s", *addr)
