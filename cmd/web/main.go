@@ -1,11 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	_ "github.com/lib/pq"
 )
 
 type application struct { //thats a pattern called Dependency Injection
@@ -15,10 +18,17 @@ type application struct { //thats a pattern called Dependency Injection
 
 func main() {
 	addr := flag.String("addr", ":4000", "Web address HTTP")
+	dsn := flag.String("dsn", "host=localhost dbname=snippetbox sslmode=disable user=admin password=root", "Postgre data source")
 	flag.Parse()
 
 	infolog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime) //creating log for info messages
 	errorlog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
+	db, err := openDB(*dsn)
+	if err != nil {
+		errorlog.Fatal(err)
+	}
+	defer db.Close()
 
 	app := &application{ //initializing app (bcz the handlers are now metods of struct)
 		errorlog: errorlog,
@@ -32,8 +42,19 @@ func main() {
 	}
 
 	infolog.Printf("Запуск сервера на %s", *addr)
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	errorlog.Fatal(err)
+}
+
+func openDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		return nil, err
+	}
+	if err = db.Ping(); err != nil {
+		return nil, err
+	}
+	return db, nil
 }
 
 type neuteredFileSystem struct {
