@@ -8,28 +8,39 @@ import (
 	"path/filepath"
 )
 
+type application struct { //thats a pattern called Dependency Injection
+	errorlog *log.Logger
+	infolog  *log.Logger
+}
+
 func main() {
 	addr := flag.String("addr", ":4000", "Web address HTTP")
 	flag.Parse()
 	infolog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime) //creating log for info messages
-	errlog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	errorlog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
+	app := &application{ //initializing app (bcz the handlers are now metods of struct)
+		errorlog: errorlog,
+		infolog:  infolog,
+	}
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", home)
-	mux.HandleFunc("/snippet", showSnippet)
-	mux.HandleFunc("/snippet/create", createSnippet)
+	mux.HandleFunc("/", app.home)
+	mux.HandleFunc("/snippet", app.showSnippet)
+	mux.HandleFunc("/snippet/create", app.createSnippet)
 
 	fileServer := http.FileServer(http.Dir("./ui/static/"))         // accessing static files
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer)) // removing "/static"
 
 	srv := &http.Server{ //initializing the server (the only change is redirecting errors to created errlog)
 		Addr:     *addr,
-		ErrorLog: errlog,
+		ErrorLog: errorlog,
 		Handler:  mux,
 	}
 
 	infolog.Printf("Запуск сервера на %s", *addr)
 	err := srv.ListenAndServe()
-	errlog.Fatal(err)
+	errorlog.Fatal(err)
 }
 
 type neuteredFileSystem struct {
