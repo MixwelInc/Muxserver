@@ -8,12 +8,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"golangify.com/snippetbox/pkg/models/mysql"
+
 	_ "github.com/lib/pq"
 )
 
 type application struct { //thats a pattern called Dependency Injection
 	errorlog *log.Logger
 	infolog  *log.Logger
+	snippets *mysql.SnippetModel
 }
 
 func main() {
@@ -33,6 +36,7 @@ func main() {
 	app := &application{ //initializing app (bcz the handlers are now metods of struct)
 		errorlog: errorlog,
 		infolog:  infolog,
+		snippets: &mysql.SnippetModel{DB: db},
 	}
 
 	srv := &http.Server{ //initializing the server (the only change is redirecting errors to created errlog)
